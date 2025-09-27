@@ -1,103 +1,148 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import TextToSpeech from './components/TextToSpeech';
+import SpeechToText from './components/SpeechToText';
+
+export default function VibalertApp() {
+  const [textToSpeak, setTextToSpeak] = useState('');
+  const [recognizedText, setRecognizedText] = useState('');
+  const [availableVoices, setAvailableVoices] = useState([]);
+  
+  const [settings, setSettings] = useState({
+    voiceSpeed: 1.0,
+    selectedVoice: null,
+    language: 'en-US'
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        const englishVoices = voices.filter(voice => voice.lang.startsWith('en'));
+        setAvailableVoices(englishVoices);
+        
+        if (englishVoices.length > 0 && !settings.selectedVoice) {
+          setSettings(prev => ({...prev, selectedVoice: englishVoices[0]}));
+        }
+      };
+
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, [settings.selectedVoice]);
+
+  const getVoiceGender = (voice) => {
+    const name = voice.name.toLowerCase();
+    if (name.includes('female') || name.includes('woman') || name.includes('zira') || name.includes('hazel') || name.includes('karen') || name.includes('samantha')) {
+      return 'female';
+    } else if (name.includes('male') || name.includes('man') || name.includes('david') || name.includes('mark') || name.includes('alex')) {
+      return 'male';
+    }
+    return 'unknown';
+  };
+
+  const maleVoices = availableVoices.filter(voice => getVoiceGender(voice) === 'male');
+  const femaleVoices = availableVoices.filter(voice => getVoiceGender(voice) === 'female');
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">      
+      <div className="bg-gradient-to-r from-slate-800 to-slate-700 shadow-lg border-b-4 border-amber-400 p-4 sm:p-6">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-center text-white tracking-wider">
+          VIBALERT
+        </h1>
+        <p className="text-center text-slate-200 mt-1 sm:mt-2 font-medium text-sm sm:text-base">
+          Assistive Communication System
+        </p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
+        <TextToSpeech 
+          textToSpeak={textToSpeak}
+          setTextToSpeak={setTextToSpeak}
+          settings={settings}
+        />
+
+        <SpeechToText 
+          recognizedText={recognizedText}
+          setRecognizedText={setRecognizedText}
+          setTextToSpeak={setTextToSpeak}
+          settings={settings}
+        />
+
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 p-4 sm:p-6 lg:p-8">
+          <h2 className="text-xl sm:text-2xl font-light text-slate-800 mb-4 sm:mb-6 border-b border-slate-200 pb-3">Voice Settings</h2>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            <div>
+              <label className="block text-base sm:text-lg font-medium text-slate-700 mb-3">
+                Speech Speed
+              </label>
+              <input 
+                type="range" 
+                min="0.5" 
+                max="2" 
+                step="0.1"
+                value={settings.voiceSpeed}
+                onChange={(e) => setSettings(prev => ({...prev, voiceSpeed: parseFloat(e.target.value)}))}
+                className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+              />
+              <div className="flex justify-between text-sm text-slate-500 mt-1">
+                <span>Slow</span>
+                <span className="font-medium text-slate-700">{settings.voiceSpeed}x</span>
+                <span>Fast</span>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-base sm:text-lg font-medium text-slate-700 mb-3">
+                Voice Type
+              </label>
+              <div className="space-y-3">
+                <div>
+                  <button
+                    className={`w-full py-3 px-4 rounded-xl border-2 transition-all duration-200 text-sm sm:text-base font-medium ${
+                      maleVoices.includes(settings.selectedVoice) 
+                        ? 'border-blue-600 bg-blue-50 text-blue-800 shadow-md' 
+                        : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:shadow-sm'
+                    }`}
+                    onClick={() => {
+                      if (maleVoices.length > 0) {
+                        setSettings(prev => ({...prev, selectedVoice: maleVoices[0]}));
+                      }
+                    }}
+                    disabled={maleVoices.length === 0}
+                  >
+                    Male Voice {maleVoices.length === 0 ? '(Not Available)' : ''}
+                  </button>
+                </div>
+                <div>
+                  <button
+                    className={`w-full py-3 px-4 rounded-xl border-2 transition-all duration-200 text-sm sm:text-base font-medium ${
+                      femaleVoices.includes(settings.selectedVoice) 
+                        ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-md' 
+                        : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:shadow-sm'
+                    }`}
+                    onClick={() => {
+                      if (femaleVoices.length > 0) {
+                        setSettings(prev => ({...prev, selectedVoice: femaleVoices[0]}));
+                      }
+                    }}
+                    disabled={femaleVoices.length === 0}
+                  >
+                    Female Voice {femaleVoices.length === 0 ? '(Not Available)' : ''}
+                  </button>
+                </div>
+              </div>
+              {settings.selectedVoice && (
+                <p className="text-xs sm:text-sm text-slate-600 mt-3 italic">
+                  Current: {settings.selectedVoice.name}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
